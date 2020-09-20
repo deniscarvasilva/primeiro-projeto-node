@@ -1,18 +1,22 @@
 import { Router, request, response } from 'express';
 import { startOfHour, parseISO, isEqual } from 'date-fns';
-import Appointment from '../models/Appointment';
 import AppointmentsRepository from '../repositories/AppointmentsRepository';
 
 const appointmentRepository = new AppointmentsRepository();
 const appointmentRouter = Router();
 
+appointmentRouter.get('/', (request, response) => {
+    const appointments = appointmentRepository.all();
+    return response.json(appointments);
+});
+
 appointmentRouter.post('/', (request, response) => {
     const { provider, date } = request.body;
 
-    const parsedDate = startOfHour(parseISO(date));
-
-    const findAppointmentInSameDate = appointments.find(appointment =>
-        isEqual(parsedDate, appointment.date),
+    const parsedDate = parseISO(date);
+    const appointmentDate = startOfHour(parsedDate);
+    const findAppointmentInSameDate = appointmentRepository.findByDate(
+        appointmentDate,
     );
 
     if (findAppointmentInSameDate) {
@@ -21,7 +25,10 @@ appointmentRouter.post('/', (request, response) => {
             .json({ message: 'This appointment is already booked' });
     }
 
-    const appointment = appointmentRepository.create(provider, parsedDate);
+    const appointment = appointmentRepository.create({
+        provider,
+        date: appointmentDate,
+    });
 
     return response.json(appointment);
 });
